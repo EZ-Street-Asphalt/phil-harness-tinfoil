@@ -1,0 +1,1 @@
+{"name":"phil-harness-bootstrap","private":true,"description":"Public bootstrap image for PHIL agent harness on Tinfoil Containers: dsh from npm; everything PHIL-specific is fetched at boot.","dependencies":{"@deepseek-ai/dsh":"0.1.5-rc.3"}}

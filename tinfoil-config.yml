@@ -1,16 +1,55 @@
-# Tinfoil Container Configuration
-# For updates: edit this file, commit, run the workflow (e.g., v0.0.2)
+# PHIL agent harness (DeepSeek Harness) on Tinfoil Containers.
+#
+# The image here is a generic bootstrap (dsh from npm + Caddy); PHIL's own
+# plugins, presets and scripts are fetched at boot from the private
+# customer-updater repo over a read-only deploy key held in Tinfoil's vault.
+# To update: run "Build Image" (version vX.Y.Z), pin the digest below, commit,
+# run "Tinfoil Release" for vX.Y.Z, then `tinfoil container update phil-dsh --tag vX.Y.Z`.
+# Updating PHIL's own code needs no new image: restart the container (or move
+# PHIL_SOURCE_REF to a new tag and release).
 cvm-version: 0.14.7
 cpus: 2
 memory: 8192
 
+networks:
+  internet:
+    egress: open   # github.com (boot fetch), Tinfoil inference, the PHIL agent app, MCP servers
+
 containers:
-  - name: "hello-world"
-    image: "ghcr.io/tinfoilsh/tinfoil-containers-hello-world@sha256:c943b1cab16409e2e686ad71deab30364c27421852cdd6b3080df1c7a38331ed"
+  - name: "phil-dsh"
+    image: "ghcr.io/ez-street-asphalt/phil-harness-tinfoil@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    networks: [internet]
+    ports:
+      - "8080:8080"
+    # dsh keeps state under /data and Caddy autosaves its config; no persistent
+    # volume yet (sessions are ephemeral — connectors, skills, persona,
+    # automations and memory live in PHIL).
+    read_only: false
     env:
-      - MESSAGE: "Hello from Tinfoil"
+      - PORT: "8080"
+      - DSH_PORT: "4120"
+      - DSH_HOME: "/data"
+      - PHIL_SOURCE_REPO: "git@github.com:EZ-Street-Asphalt/customer-updater.git"
+      - PHIL_SOURCE_REF: "staging"
+      - PHIL_SOURCE_PATH: "apps/agent/dsh"
+      - PHIL_GATE: "token"
+      - PHIL_TENANT_SLUG: "ez-street"
+      - PHIL_TENANT_NAME: "EZ Street"
+      - PHIL_AGENT_URL: "https://agent.staging.notacrm.com"
+      - TINFOIL_BASE_URL: "https://inference.tinfoil.sh/v1"
+      - AGENT_MODEL: "deepseek-v4-1-flash"
+      - DSH_TRUSTED_HOST: "phil-dsh.ez-street.containers.tinfoil.dev"
     secrets:
-      - GREETING_TOKEN
+      - PHIL_SOURCE_SSH_KEY_B64
+      - TINFOIL_API_KEY
+      - DSH_BRIDGE_KEY
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: always
 
 shim:
   upstream-port: 8080
