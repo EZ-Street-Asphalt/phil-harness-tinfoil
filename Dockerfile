@@ -12,9 +12,14 @@ FROM caddy:2 AS caddy
 
 FROM node:22-bookworm-slim
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client bubblewrap ripgrep \
+ && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client bubblewrap ripgrep libcap2-bin \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
+# The official image gives caddy cap_net_bind_service as a file capability.
+# Tinfoil runs workloads with zero capabilities and no-new-privileges, where
+# the kernel refuses to exec such a file ("Operation not permitted"); we only
+# listen on an unprivileged port, so drop it.
+RUN setcap -r /usr/bin/caddy && getcap /usr/bin/caddy | grep -q . && exit 1 || true
 
 WORKDIR /app
 COPY package.json package-lock.json ./
