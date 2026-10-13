@@ -17,7 +17,7 @@ networks:
 
 containers:
   - name: "phil-dsh"
-    image: "ghcr.io/ez-street-asphalt/phil-harness-tinfoil@sha256:fa54a410e21ca35aa5fbf41851339b584c838e1e47fdd0cd731383541dcecdc1"
+    image: "ghcr.io/ez-street-asphalt/phil-harness-tinfoil@sha256:3bc0bdb910d205e9866a7be1f0a169d7ad0c7d07c4a9e54f54b3f51d83bb0395"
     networks: [internet]
     ports:
       - "8080:8080"
