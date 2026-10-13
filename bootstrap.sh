@@ -106,4 +106,36 @@ unset PHIL_SOURCE_SSH_KEY_B64 GIT_CONFIG_VALUE_0 GIT_SSH_COMMAND
 echo "bootstrap: handing over to $subdir/docker-entrypoint.sh"
 kill "$placeholder" 2>/dev/null; wait "$placeholder" 2>/dev/null
 cd "$harness"
-exec ./docker-entrypoint.sh
+if [[ "${PHIL_HOLD_ON_FAILURE:-1}" != "1" ]]; then
+  exec ./docker-entrypoint.sh
+fi
+# Hold mode (default): the harness runs as a child; if it ever exits, its
+# output is in the log and a placeholder takes the port back so the enclave
+# stays reachable for diagnosis instead of being torn down.
+# Its own process group, so whichever of Caddy/dsh outlived the other can be
+# stopped too and the port is free for the placeholder.
+setsid ./docker-entrypoint.sh &
+harness_pid=$!
+wait "$harness_pid"
+code=$?
+echo "bootstrap: harness exited with status $code"
+kill -TERM -- "-$harness_pid" 2>/dev/null; sleep 2; kill -KILL -- "-$harness_pid" 2>/dev/null
+node -e '
+  const http = require("http"), fs = require("fs");
+  const key = process.env.DSH_BRIDGE_KEY || "";
+  const srv = http.createServer((req, res) => {
+    const path = req.url.split("?")[0];
+    if (path === "/healthz") return res.writeHead(200).end("harness exited\n");
+    if (path === "/bootlog") {
+      if (!key || req.headers["x-phil-bridge-key"] !== key) return res.writeHead(403).end();
+      res.writeHead(200, { "content-type": "text/plain" });
+      return fs.createReadStream("/tmp/bootstrap.log").pipe(res);
+    }
+    res.writeHead(503).end("harness exited\n");
+  });
+  let tries = 0;
+  srv.on("error", (e) => { if (e.code === "EADDRINUSE" && tries++ < 40) setTimeout(() => srv.listen(Number(process.argv[1]), "0.0.0.0"), 500); else throw e; });
+  srv.listen(Number(process.argv[1]), "0.0.0.0");
+' "$port" &
+placeholder=$!
+fail "harness exited with status $code"
