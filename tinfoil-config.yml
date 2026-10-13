@@ -32,13 +32,13 @@ containers:
       - PHIL_SOURCE_REPO: "git@github.com:EZ-Street-Asphalt/customer-updater.git"
       - PHIL_SOURCE_REF: "staging"
       - PHIL_SOURCE_PATH: "apps/agent/dsh"
-      - PHIL_GATE: "token"
+      - PHIL_GATE: "session"
       - PHIL_TENANT_SLUG: "ez-street"
       - PHIL_TENANT_NAME: "EZ Street"
       - PHIL_AGENT_URL: "https://agent.staging.notacrm.com"
       - TINFOIL_BASE_URL: "https://inference.tinfoil.sh/v1"
       - AGENT_MODEL: "deepseek-v4-1-flash"
-      - DSH_TRUSTED_HOST: "phil-dsh.ez-street.containers.tinfoil.dev"
+      - DSH_TRUSTED_HOST: "deepseek.staging.notacrm.com,phil-dsh.ez-street.containers.tinfoil.dev"
     secrets:
       - PHIL_SOURCE_SSH_KEY_B64
       - TINFOIL_API_KEY
