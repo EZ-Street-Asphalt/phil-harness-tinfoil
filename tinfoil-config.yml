@@ -33,6 +33,7 @@ containers:
       - PHIL_SOURCE_REF: "staging"
       - PHIL_SOURCE_PATH: "apps/agent/dsh"
       - PHIL_GATE: "token"
+      - PHIL_MULTIUSER: "1"
       - PHIL_TENANT_SLUG: "ez-street"
       - PHIL_TENANT_NAME: "EZ Street"
       - PHIL_AGENT_URL: "https://agent.staging.notacrm.com"
